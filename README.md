@@ -1,6 +1,5 @@
 # 🧠 Nest Turbo Starter
 
-🧠 Nest Turbo Starter
 A high-performance, monorepo microservices platform built with NestJS, optimized for speed using Turborepo and the pnpm package manager. The system is containerized with Docker and features dynamic traffic management and security via API Gateway (Apache APISIX / Kong).
 
 ## 🚀 Getting Started
