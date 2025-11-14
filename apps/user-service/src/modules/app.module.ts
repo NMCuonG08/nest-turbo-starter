@@ -16,7 +16,6 @@ import { WinstonModule } from 'nest-winston';
 import { appConfiguration, dbConfiguration } from 'src/config';
 import { BaseRepository } from 'src/data-access/base.repository';
 import { RoleBasedAccessControlGuard } from 'src/guards/rbac.guard';
-import { UploadModule } from 'src/modules/upload';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth';
@@ -59,11 +58,8 @@ import { AppAuthGuard } from '../guards/app-auth.guard';
       },
       inject: [appConfiguration.KEY, appCommonConfiguration.KEY],
     }),
-    UploadModule,
-    // Business Logic Modules
     UserModule,
     AuthModule,
-    AwsS3Module,
     RedisModule,
   ],
   controllers: [AppController],

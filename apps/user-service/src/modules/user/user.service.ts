@@ -5,7 +5,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { UserRepository } from 'src/data-access/user';
-import { UploadService } from 'src/modules/upload';
 import { Logger } from 'winston';
 import {
   CreateUserDataDto,
@@ -28,7 +27,6 @@ export class UserService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly em: EntityManager,
     private readonly userRepo: UserRepository,
-    private readonly uploadService: UploadService,
   ) {
     this.logger = this.logger.child({ context: UserService.name });
   }

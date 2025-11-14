@@ -20,7 +20,6 @@ import { Transport } from '@nestjs/microservices';
 import { WinstonModule } from 'nest-winston';
 import { appConfiguration } from 'src/config';
 import { AppAuthGuard, RoleBasedAccessControlGuard } from 'src/guards';
-import { UploadModule } from 'src/modules/upload';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth';
@@ -76,10 +75,7 @@ import { AuthModule } from './auth';
         },
       },
     ]),
-    UploadModule,
-    // Business Logic Modules
     AuthModule,
-    AwsS3Module,
     RedisModule,
   ],
   controllers: [AppController],
