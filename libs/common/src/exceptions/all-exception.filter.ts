@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Inject,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost } from '@nestjs/core';
@@ -15,11 +16,12 @@ import { Logger } from 'winston';
 import { ERROR_RESPONSE } from '../constants';
 import { HttpErrorResponseDto } from '../dto';
 import { convertErrorToObject } from '../utilities';
+import { NodeEnv } from '../enums';
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   constructor(
-    private readonly httpAdapterHost: HttpAdapterHost,
+    @Optional() private readonly httpAdapterHost: HttpAdapterHost,
     private readonly configService: ConfigService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -27,7 +29,7 @@ export class AllExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): Observable<any> {
     // In certain situations `httpAdapter` might not be available in the
     // constructor method, thus resolve it here.
-    const { httpAdapter } = this.httpAdapterHost;
+    const httpAdapter = this.httpAdapterHost?.httpAdapter;
     const ctx = host.switchToHttp();
     const request = ctx.getRequest();
     const response = ctx.getResponse();
@@ -78,13 +80,20 @@ export class AllExceptionFilter implements ExceptionFilter {
     (response as any).error = exception;
 
     // Remove error details in production
-    const isProductionEnv = this.configService.get<string>('app.isProductionEnv');
-    isProductionEnv && delete errorData.details;
+    const nodeEnv = this.configService.get<NodeEnv>('appCommon.nodeEnv');
+    const isCriticalEnv = [NodeEnv.Production, NodeEnv.Staging].includes(nodeEnv);
+    isCriticalEnv && delete errorData.details;
 
     if (isRpcContext) return throwError(() => errorData);
 
     if (!response.headersSent) {
-      httpAdapter.reply(ctx.getResponse(), errorData, httpStatus);
+      if (httpAdapter) {
+        httpAdapter.reply(ctx.getResponse(), errorData, httpStatus);
+      } else {
+        response
+          .status(httpStatus)
+          .json(errorData);
+      }
     } else {
       this.logger.warn('Response already sent, skipping error response', {
         url: request.url,
