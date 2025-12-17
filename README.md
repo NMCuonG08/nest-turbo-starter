@@ -134,9 +134,23 @@ This project implements a robust, containerized microservices architecture desig
 
 ## 🛠️  Installation Preparation
 
+
+```bash
+# Chạy chỉ auth-service
+npm run dev:service -- auth-service
+
+# Chạy chỉ user-service
+npm run dev:service -- user-service
+
+# Chạy chỉ quiz-service
+npm run dev:service -- quiz-service
+```
+
 1. **Default Base Path**
 set PWD=%CD%
 
+1.1 . If you want to add a new service in apisix gateway
+docker compose run --rm adc adc sync -f conf/apisix-dev.yaml
    ```bash
    /home/app.user/nest-turbo-starter
    ```

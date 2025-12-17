@@ -13,6 +13,7 @@
     "build:clean": "turbo run build:clean",
     "test": "turbo run test",
     "dev": "dotenv -e .env -- turbo run start:dev --parallel",
+    "dev:service": "dotenv -e .env -- turbo run start:dev --filter",
     "prod": "turbo run start:prod --parallel",
     "migration:up": "turbo run migration:up --parallel",
     "lint": "turbo run lint",

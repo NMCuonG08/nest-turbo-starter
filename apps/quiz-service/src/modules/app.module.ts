@@ -17,12 +17,16 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService, ConfigType } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from 'nest-winston';
-import { appConfiguration } from 'src/config';
-import { AppAuthGuard, RoleBasedAccessControlGuard } from 'src/guards';
+import { appConfiguration, dbConfiguration } from 'src/config';
+import { RoleBasedAccessControlGuard } from 'src/guards/rbac.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth';
+import { QuizModule } from './quiz';
+import { QuizCategoryModule } from './quiz-category';
+import { AppAuthGuard } from '../guards/app-auth.guard';
 
 @Module({
   imports: [
@@ -36,10 +40,17 @@ import { AuthModule } from './auth';
       load: [
         appCommonConfiguration,
         appConfiguration,
+        dbConfiguration,
         rabbitmqConfiguration,
         kafkaConfiguration,
         tcpConfiguration,
       ],
+    }),
+    TypeOrmModule.forRootAsync({
+      useFactory: (dbConfig: ConfigType<typeof dbConfiguration>) => {
+        return dbConfig;
+      },
+      inject: [dbConfiguration.KEY],
     }),
     WinstonModule.forRootAsync({
       useFactory: (
@@ -67,25 +78,16 @@ import { AuthModule } from './auth';
         transport: Transport.TCP,
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => {
-          const quizTcpURLConfig = configService.get('tcp.quizService');
+          const userTcpURLConfig = configService.get('tcp.quizService');
           return {
-            ...quizTcpURLConfig,
-          };
-        },
-      },
-      {
-        name: MicroserviceName.NotificationService,
-        transport: Transport.TCP,
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => {
-          const notificationTcpURLConfig = configService.get('tcp.notificationService');
-          return {
-            ...notificationTcpURLConfig,
+            ...userTcpURLConfig,
           };
         },
       },
     ]),
     AuthModule,
+    QuizCategoryModule,
+    QuizModule,
     RedisModule,
   ],
   controllers: [AppController],

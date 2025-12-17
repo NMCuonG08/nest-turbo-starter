@@ -19,8 +19,15 @@ export const databaseConfig = {
   baseDir: __dirname,
   debug: process.env.USER_SERVICE_NODE_ENV === NodeEnv.Production,
   entities: Object.values(entities),
+  ensureDatabase: false,
   cache: {
     enabled: false,
+  },
+  pool: {
+    min: 1,
+    max: 20,
+    acquireTimeoutMillis: 30000,
+    idleTimeoutMillis: 30000,
   },
 };
 

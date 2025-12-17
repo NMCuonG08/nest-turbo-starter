@@ -3,4 +3,5 @@ export enum MicroserviceName {
   UserService = 'UserService',
   NotificationService = 'NotificationService',
   ProductService = 'ProductService',
+  QuizService = 'QuizService',
 }

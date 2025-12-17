@@ -1,14 +1,15 @@
+import { ERROR_RESPONSE } from '@app/common';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { catchError, lastValueFrom, Observable, timeout } from 'rxjs';
-import { ERROR_RESPONSE } from '@app/common';
 
 export class BaseService {
   protected async msResponse(res: Observable<any>, timeoutMs?: number): Promise<any> {
-    const callTimeout = timeoutMs || +process.env.CALL_SERVICE_TIMEOUT;
+    const callTimeout = timeoutMs || +process.env.CALL_SERVICE_TIMEOUT || 5000;
     const pipe = res.pipe(
       timeout(callTimeout),
       catchError((err) => {
-        const statusCode = err?.statusCode || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.statusCode;
+        const statusCode =
+          err?.statusCode || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.statusCode;
         throw new HttpException(
           {
             statusCode: statusCode,
