@@ -1,4 +1,9 @@
-import { getAppCommonConfig, getWinstonConfig, logBootstrapInfo, setupSwagger } from '@app/common';
+import {
+  getAppCommonConfig,
+  getWinstonConfig,
+  logBootstrapInfo,
+  setupSwagger,
+} from '@app/common';
 import { PayloadValidationPipe } from '@app/common';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';

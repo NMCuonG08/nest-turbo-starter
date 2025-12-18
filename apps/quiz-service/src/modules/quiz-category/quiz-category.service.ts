@@ -1,21 +1,22 @@
 import { ERROR_RESPONSE, ServerException } from '@app/common';
+import { RedisService } from '@app/core';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
-import { QuizCategoryRepository } from 'src/data-access/quiz-category/quiz-category.repository';
 import { QuizCategory } from 'src/data-access/quiz-category/quiz-category.entity';
+import { QuizCategoryRepository } from 'src/data-access/quiz-category/quiz-category.repository';
+import { DataSource, Repository } from 'typeorm';
+import { Logger } from 'winston';
 import {
   CreateQuizCategoryDataDto,
   CreateQuizCategoryResponseDto,
   DeleteQuizCategoryDataDto,
   DeleteQuizCategoryResponseDto,
-  GetQuizCategoryDataDto,
-  GetQuizCategoryResponseDto,
   GetQuizCategoriesDataDto,
   GetQuizCategoriesResponseDto,
+  GetQuizCategoryDataDto,
+  GetQuizCategoryResponseDto,
   UpdateQuizCategoryDataDto,
   UpdateQuizCategoryResponseDto,
 } from './dto';
@@ -25,8 +26,55 @@ export class QuizCategoryService {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private readonly quizCategoryRepo: QuizCategoryRepository,
+    private readonly redisService: RedisService,
   ) {
     this.logger = this.logger.child({ context: QuizCategoryService.name });
+  }
+
+  private readonly CACHE_KEY = 'quiz:categories:all';
+  private readonly CACHE_TTL = 3600; // 1 hour
+
+  async getAllCategories(): Promise<GetQuizCategoriesResponseDto> {
+    // Try to get from cache first
+    const cached = await this.redisService.getValue<GetQuizCategoriesResponseDto>(
+      this.CACHE_KEY,
+    );
+
+    if (cached) {
+      this.logger.debug('Returning quiz categories from cache');
+      return cached;
+    }
+
+    // If not in cache, fetch from database
+    const [categories, total] = await this.quizCategoryRepo.findAndCount({
+      where: { isActive: true },
+      order: {
+        sortOrder: 'ASC',
+        createdAt: 'DESC',
+      },
+    });
+
+    const result: GetQuizCategoriesResponseDto = {
+      categories: categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        iconUrl: cat.iconUrl,
+        parentId: cat.parentId,
+        sortOrder: cat.sortOrder,
+        isActive: cat.isActive,
+        createdAt: cat.createdAt,
+        updatedAt: cat.updatedAt,
+      })),
+      total,
+    };
+
+    // Cache the result
+    await this.redisService.setValue(this.CACHE_KEY, result, this.CACHE_TTL);
+    this.logger.debug('Cached quiz categories');
+
+    return result;
   }
 
   async createCategory(
@@ -58,12 +106,13 @@ export class QuizCategoryService {
 
     await this.quizCategoryRepo.save(category);
 
+    // Invalidate cache
+    await this.redisService.deleteKey(this.CACHE_KEY);
+
     return plainToInstance(CreateQuizCategoryResponseDto, category);
   }
 
-  async getCategory(
-    data: GetQuizCategoryDataDto,
-  ): Promise<GetQuizCategoryResponseDto> {
+  async getCategory(data: GetQuizCategoryDataDto): Promise<GetQuizCategoryResponseDto> {
     const where: any = {};
     if (data.id) where.id = data.id;
     if (data.slug) where.slug = data.slug;
@@ -85,35 +134,12 @@ export class QuizCategoryService {
   async getCategories(
     data: GetQuizCategoriesDataDto,
   ): Promise<GetQuizCategoriesResponseDto> {
-    const { limit = 10, offset = 0, search, parentId, isActive } = data;
+    const { search, parentId } = data;
 
-    const queryBuilder = this.quizCategoryRepo.createQueryBuilder('category');
-
-    if (search) {
-      queryBuilder.where(
-        '(category.name ILIKE :search OR category.slug ILIKE :search OR category.description ILIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    if (parentId !== undefined) {
-      if (parentId === null) {
-        queryBuilder.andWhere('category.parentId IS NULL');
-      } else {
-        queryBuilder.andWhere('category.parentId = :parentId', { parentId });
-      }
-    }
-
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive });
-    }
-
-    queryBuilder.orderBy('category.sortOrder', 'ASC');
-    queryBuilder.addOrderBy('category.createdAt', 'DESC');
-    queryBuilder.skip(offset);
-    queryBuilder.take(limit);
-
-    const [categories, total] = await queryBuilder.getManyAndCount();
+    const [categories, total] = await this.quizCategoryRepo.findWithFilters({
+      ...(search && { search, isActive: true }),
+      parentId,
+    });
 
     return {
       categories: categories.map((cat) => ({
@@ -184,6 +210,9 @@ export class QuizCategoryService {
 
     await this.quizCategoryRepo.save(category);
 
+    // Invalidate cache
+    await this.redisService.deleteKey(this.CACHE_KEY);
+
     return plainToInstance(UpdateQuizCategoryResponseDto, category);
   }
 
@@ -204,13 +233,17 @@ export class QuizCategoryService {
       throw new ServerException({
         statusCode: 400,
         errorCode: 'category_has_children',
-        message: 'Cannot delete category with children. Please delete or move children first',
+        message:
+          'Cannot delete category with children. Please delete or move children first',
       });
     }
 
     // Soft delete
     category.deletedAt = new Date();
     await this.quizCategoryRepo.save(category);
+
+    // Invalidate cache
+    await this.redisService.deleteKey(this.CACHE_KEY);
 
     return {
       success: true,
@@ -219,4 +252,3 @@ export class QuizCategoryService {
     };
   }
 }
-

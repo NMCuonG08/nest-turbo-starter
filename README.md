@@ -144,8 +144,9 @@ npm run dev:service -- user-service
 
 # Chạy chỉ quiz-service
 npm run dev:service -- quiz-service
-```
 
+pnpm --filter @app/common build
+```
 1. **Default Base Path**
 set PWD=%CD%
 

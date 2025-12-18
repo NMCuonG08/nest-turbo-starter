@@ -15,8 +15,8 @@ import { Observable, throwError } from 'rxjs';
 import { Logger } from 'winston';
 import { ERROR_RESPONSE } from '../constants';
 import { HttpErrorResponseDto } from '../dto';
-import { convertErrorToObject } from '../utilities';
 import { NodeEnv } from '../enums';
+import { convertErrorToObject } from '../utilities';
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
@@ -51,11 +51,22 @@ export class AllExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         exceptionResponse = { message: exceptionResponse };
       }
+
+      // Đảm bảo errorCode và message luôn có (nếu exceptionResponse không có thì dùng default)
+      const errorCode =
+        (exceptionResponse as any)?.errorCode ||
+        ERROR_RESPONSE.INTERNAL_SERVER_ERROR.errorCode;
+      const message =
+        (exceptionResponse as any)?.message ||
+        ERROR_RESPONSE.INTERNAL_SERVER_ERROR.message;
+
       _.assign(
         errorData,
         {
           statusCode: exception.getStatus(),
           errorService: microserviceName,
+          errorCode: errorCode,
+          message: message,
         },
         exceptionResponse,
       );
@@ -68,7 +79,8 @@ export class AllExceptionFilter implements ExceptionFilter {
 
       const rpcError = exception as any;
       _.assign(errorData, {
-        statusCode: rpcError?.statusCode || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.statusCode,
+        statusCode:
+          rpcError?.statusCode || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.statusCode,
         message: rpcError?.message || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.message,
         errorCode: rpcError.errorCode || ERROR_RESPONSE.INTERNAL_SERVER_ERROR.errorCode,
         errorService: microserviceName,
@@ -90,9 +102,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       if (httpAdapter) {
         httpAdapter.reply(ctx.getResponse(), errorData, httpStatus);
       } else {
-        response
-          .status(httpStatus)
-          .json(errorData);
+        response.status(httpStatus).json(errorData);
       }
     } else {
       this.logger.warn('Response already sent, skipping error response', {

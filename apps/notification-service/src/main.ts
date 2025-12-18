@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import { getAppConfig } from 'src/config/app.config';
 import { AppModule } from './modules/app.module';
+import { RedisIoAdapter } from './adapters/redis-io.adapter';
 
 async function bootstrap() {
   const { appName, appPort } = getAppConfig();
@@ -20,6 +21,15 @@ async function bootstrap() {
     logger,
   });
   const configService: ConfigService = await app.get(ConfigService);
+
+  // Setup Redis IoAdapter for WebSocket scaling
+  const redisIoAdapter = new RedisIoAdapter(
+    app,
+    configService,
+    logger,
+  );
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const reflector = app.get(Reflector);
 

@@ -99,54 +99,18 @@ export class QuizService {
       published,
     } = data;
 
-    const queryBuilder = this.quizRepo.createQueryBuilder('quiz');
-
-    if (search) {
-      queryBuilder.where(
-        '(quiz.title ILIKE :search OR quiz.slug ILIKE :search OR quiz.description ILIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    if (categoryId) {
-      queryBuilder.andWhere('quiz.categoryId = :categoryId', { categoryId });
-    }
-
-    if (creatorId) {
-      queryBuilder.andWhere('quiz.creatorId = :creatorId', { creatorId });
-    }
-
-    if (difficultyLevel) {
-      queryBuilder.andWhere('quiz.difficultyLevel = :difficultyLevel', {
-        difficultyLevel,
-      });
-    }
-
-    if (quizType) {
-      queryBuilder.andWhere('quiz.quizType = :quizType', { quizType });
-    }
-
-    if (isPublic !== undefined) {
-      queryBuilder.andWhere('quiz.isPublic = :isPublic', { isPublic });
-    }
-
-    if (isActive !== undefined) {
-      queryBuilder.andWhere('quiz.isActive = :isActive', { isActive });
-    }
-
-    if (published !== undefined) {
-      if (published) {
-        queryBuilder.andWhere('quiz.publishedAt IS NOT NULL');
-      } else {
-        queryBuilder.andWhere('quiz.publishedAt IS NULL');
-      }
-    }
-
-    queryBuilder.orderBy('quiz.createdAt', 'DESC');
-    queryBuilder.skip(offset);
-    queryBuilder.take(limit);
-
-    const [quizzes, total] = await queryBuilder.getManyAndCount();
+    const [quizzes, total] = await this.quizRepo.findWithFilters({
+      search,
+      categoryId,
+      creatorId,
+      difficultyLevel,
+      quizType,
+      isPublic,
+      isActive,
+      published,
+      limit,
+      offset,
+    });
 
     return {
       quizzes: quizzes.map((quiz) => ({

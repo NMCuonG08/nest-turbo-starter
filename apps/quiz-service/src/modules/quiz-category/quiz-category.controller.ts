@@ -30,10 +30,8 @@ export class QuizCategoryController {
 
   @Get()
   @ApiOperation({ summary: 'Get all quiz categories' })
-  async getAll(
-    @Query() query: GetQuizCategoriesDataDto,
-  ): Promise<GetQuizCategoriesResponseDto> {
-    return this.quizCategoryService.getCategories(query);
+  async getAll(): Promise<GetQuizCategoriesResponseDto> {
+    return this.quizCategoryService.getAllCategories();
   }
 
   @Get(':id')

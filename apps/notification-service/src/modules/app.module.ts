@@ -19,6 +19,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth';
 import { EmailModule } from './email';
 import { SendMailModule } from './send-mail';
+import { WebSocketModule } from './websocket';
 import { AppAuthGuard } from '../guards/app-auth.guard';
 import { Transport } from '@nestjs/microservices';
 
@@ -84,6 +85,7 @@ import { Transport } from '@nestjs/microservices';
     SendMailModule,
     RedisModule,
     EmailModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [

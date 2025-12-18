@@ -1,14 +1,6 @@
 import { IsBoolean, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class GetQuizCategoriesDataDto {
-  @IsInt()
-  @IsOptional()
-  limit?: number;
-
-  @IsInt()
-  @IsOptional()
-  offset?: number;
-
   @IsString()
   @IsOptional()
   search?: string;
